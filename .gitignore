@@ -1,0 +1,5 @@
+.cache
+third_party/*
+build/*
+.vscode/*
+*.log

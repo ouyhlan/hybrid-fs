@@ -1,0 +1,6 @@
+[submodule "third_party/glog"]
+	path = third_party/glog
+	url = https://github.com/google/glog.git
+[submodule "third_party/gsl"]
+	path = third_party/gsl
+	url = https://github.com/microsoft/GSL.git
