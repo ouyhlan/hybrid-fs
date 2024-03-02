@@ -27,7 +27,7 @@ DCacheEntry *DCacheManager::get_root() { return root_; }
 
 void DCacheManager::insert(const std::string &filename, uint32_t inode_idx, const DCacheEntry* parent) {
   std::string key = "$" + std::to_string(parent->inode_idx) + filename;
-  if (hash_table_.count(key) > 0)
+  if (hash_table_.count(key) > 0 && hash_table_[key] != nullptr)
     delete hash_table_[key];
   hash_table_[key] = new DCacheEntry(parent, inode_idx);
 }
@@ -36,10 +36,18 @@ void DCacheManager::insert(const std::string &filename, uint32_t inode_idx, cons
 DCacheEntry *DCacheManager::lookup(const std::string &filename,
                                    const DCacheEntry *parent) {
   std::string key = "$" + std::to_string(parent->inode_idx) + filename;
-  if (hash_table_.count(key) > 0)
+  if (hash_table_.count(key) > 0 && hash_table_[key] != nullptr)
     return hash_table_[key];
   else
     return nullptr;
+}
+
+void DCacheManager::remove(const std::string &filename, uint32_t parent_inode_idx) {
+  std::string key = "$" + std::to_string(parent_inode_idx) + filename;
+  if (hash_table_.count(key) > 0) {
+    delete hash_table_[key];
+    hash_table_[key] = nullptr;
+  }
 }
 
 DCacheManager::DCacheManager() : root_(nullptr) {}

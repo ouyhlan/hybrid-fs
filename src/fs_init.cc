@@ -17,6 +17,9 @@ void *fs_init(fuse_conn_info *conn, fuse_config *cfg) {
   // fill in gdt
   GET_INSTANCE(MetaDataManager).gdt_fill();
 
+  // initialize hdd disk
+  GET_INSTANCE(MetaDataManager).hdd_disk_init();
+
   // Initialize root inode
   GET_INSTANCE(InodeManager).init();
 

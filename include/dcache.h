@@ -18,8 +18,10 @@ public:
   static DCacheManager &get_instance();
   int init_root(uint32_t root_inode_idx);
   DCacheEntry *get_root();
-  void insert(const std::string &filename, uint32_t inode_idx, const DCacheEntry* parent);
   DCacheEntry *lookup(const std::string &filename, const DCacheEntry* parent);
+
+  void insert(const std::string &filename, uint32_t inode_idx, const DCacheEntry* parent);
+  void remove(const std::string &filename, uint32_t parent_inode_idx);
 
 private:
   struct DCacheEntry *root_;

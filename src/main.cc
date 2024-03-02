@@ -1,7 +1,7 @@
+#include "ops.h"
 #include "common.h"
 #include "cxxopts.hpp"
 #include "disk.h"
-#include "ops.h"
 #include <err.h>
 #include <glog/logging.h>
 #include <iostream>
@@ -47,11 +47,16 @@ static cxxopts::ParseResult parse_options(int argc, char **argv) {
 }
 
 static struct fuse_operations fs_ops = {
-    .getattr = fs_getattr,
-    .open = fs_open,
-    .read = fs_read,
-    .readdir = fs_readdir,
-    .init = fs_init,
+  .getattr = fs_getattr,
+  .mknod = fs_mknod,
+  .mkdir = fs_mkdir,
+  .unlink = fs_unlink,
+  .rmdir = fs_rmdir,
+  .open = fs_open,
+  .read = fs_read,
+  .write = fs_write,
+  .readdir = fs_readdir,
+  .init = fs_init,
 };
 
 int main(int argc, char *argv[]) {

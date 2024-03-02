@@ -33,17 +33,20 @@ static size_t first_read(const ext4_inode &inode, char *buf, size_t size, off_t 
   uint32_t end_lblock = (offset + size - 1) / block_size;
   uint32_t start_offset = offset % block_size;
   
-  if (size ==0 || start_offset == 0) return 0;
+  if (size == 0 || start_offset == 0) 
+    return 0;
 
-  uint64_t start_pblock = GET_INSTANCE(InodeManager).get_data_pblock(inode, start_pblock);
   size_t first_read_size = size;
-
   if (start_lblock != end_lblock) { // cross block reading
     first_read_size = ALIGN_TO(offset, block_size) - offset;
   }
 
-  off_t start_pblock_offset = start_pblock * block_size + start_offset;
-  GET_INSTANCE(DiskManager).ssd_disk_read(buf, first_read_size, start_pblock_offset);
+  uint64_t start_pblock = GET_INSTANCE(InodeManager).get_data_pblock(inode, start_lblock);
+  if (start_pblock == 0) // sparse file
+    return first_read_size;
+
+  GET_INSTANCE(DiskManager).disk_read(buf, first_read_size, start_pblock, start_offset);
+  LOG(INFO) << "Read " << first_read_size << "bytes from block #" << start_pblock;
   return first_read_size;
 }
 
@@ -54,8 +57,13 @@ int fs_read(const char *path, char *buf, size_t size, off_t offset,
   LOG(INFO) << "read(" << path << ", buf, " << size << ", " << offset
              << ", fi->fh=" << fi->fh << ")";
 
+  if (((fi->flags & O_ACCMODE) == O_WRONLY))
+      return -EACCES;
+
+  size_t bytes;
   size_t ret = 0;
   size_t un_offset = (size_t)offset;
+  uint32_t block_size = GET_INSTANCE(MetaDataManager).block_size();
   ext4_inode inode;
 
   int get_inode_ret =
@@ -68,24 +76,19 @@ int fs_read(const char *path, char *buf, size_t size, off_t offset,
   size = truncate_size(inode, size, offset);
 
   // read the first block and doing the alignment
-  ret = first_read(inode, buf, size, offset);
+  bytes = first_read(inode, buf, size, offset);
 
-  buf += ret;
-  un_offset += ret;
-  size_t bytes;
-  uint32_t block_size = GET_INSTANCE(MetaDataManager).block_size();
+  ret = bytes;
+  buf += bytes;
+  un_offset += bytes;
   for (uint32_t lblock = un_offset / block_size; size > ret; lblock++) {
-    uint64_t pblock = GET_INSTANCE(InodeManager).get_data_pblock(inode, lblock);
+    bytes = (size - ret) > block_size ? block_size : size - ret;
 
-    if (pblock) {
-      bytes = (size - ret) > block_size ? block_size : size - ret;
-      off_t pblock_offset = pblock * block_size;
-      GET_INSTANCE(DiskManager).ssd_disk_read(buf, bytes, pblock_offset);
-    } else {
-      bytes = size - ret;
-      if (bytes > block_size) {
-        bytes = block_size;
-      }
+    uint64_t pblock = GET_INSTANCE(InodeManager).get_data_pblock(inode, lblock);
+    if (pblock) { 
+      GET_INSTANCE(DiskManager).disk_read(buf, bytes, pblock, 0);
+      LOG(INFO) << "Read " << bytes << " from block #" << pblock;
+    } else {  // deal with sparse file
       memset(buf, 0, bytes);
       LOG(INFO) << "Sparse file, skipping " << bytes << " bytes";
     }
@@ -93,5 +96,6 @@ int fs_read(const char *path, char *buf, size_t size, off_t offset,
     buf += bytes;
   }
   assert(size == ret);
+  LOG(INFO) << "Read done";
   return ret;
 }

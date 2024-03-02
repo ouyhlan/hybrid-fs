@@ -13,6 +13,7 @@ int fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
   LOG(INFO) << "Readdir begin:";
   (void)fi;
   (void)offset;
+  (void)flags;
 
   struct stat st;
   ext4_inode inode;
@@ -35,7 +36,8 @@ int fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     if (dentry->inode == 0)
       continue;
 
-    st.st_ino = dentry->inode;
+    // since cfg->use_ino is not set, no need to set this
+    // st.st_ino = dentry->inode;
     st.st_mode = inode.i_mode;
     std::string filename(dentry->name, (size_t)dentry->name_len);
 
